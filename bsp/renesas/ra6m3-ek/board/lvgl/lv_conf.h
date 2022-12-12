@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2006-2023, RT-Thread Development Team
+ * Copyright (c) 2006-2021, RT-Thread Development Team
  *
  * SPDX-License-Identifier: Apache-2.0
  *
  * Change Logs:
  * Date           Author        Notes
- * 2023-02-22     Rbb666        First version
+ * 2021-10-18     Meco Man      First version
  */
 
 #ifndef LV_CONF_H
@@ -34,7 +34,11 @@
     #define LV_DPI_DEF              89
 #endif
 
-#define DLG_LVGL_USE_GPU_RA6M3      0
+#define DLG_LVGL_USE_GPU_RA6M3  1
+
+#define CONFIG_LV_DISP_DEF_REFR_PERIOD PKG_LVGL_DISP_REFR_PERIOD
+
+#define LV_USE_DEMO_BENCHMARK  0
 
 #ifdef PKG_USING_LV_MUSIC_DEMO
 /* music player demo */
@@ -42,7 +46,7 @@
 #define LV_DEMO_RTT_MUSIC_AUTO_PLAY 1
 #define LV_FONT_MONTSERRAT_12       1
 #define LV_FONT_MONTSERRAT_16       1
-#define LV_COLOR_SCREEN_TRANSP      0
+#define LV_COLOR_SCREEN_TRANSP      1
 #endif /* PKG_USING_LV_MUSIC_DEMO */
 
 #endif

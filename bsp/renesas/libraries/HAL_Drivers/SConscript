@@ -61,6 +61,12 @@ if GetDepend(['BSP_USING_SDHI']):
 if GetDepend(['BSP_USING_LCD']):
     src += ['drv_lcd.c']
 
+if GetDepend(['BSP_USING_G2D']):
+    src += ['drv_g2d.c']
+
+if GetDepend(['BSP_USING_JPEG']):
+    src += ['drv_jpeg.c']
+
 path =  [cwd]
 path += [cwd + '/config']
 

@@ -29,10 +29,11 @@ struct drv_lcd_device
     void *framebuffer;
 };
 
+//
 struct drv_lcd_device _lcd;
 
 uint16_t screen_rotation;
-uint16_t *lcd_current_working_buffer = (uint16_t *)&fb_background[0];
+uint16_t *lcd_current_working_buffer = (uint16_t *) &fb_background[0];
 
 void turn_on_lcd_backlight(void)
 {
@@ -233,7 +234,6 @@ int rt_hw_lcd_init(void)
 
     return result;
 }
-
 INIT_DEVICE_EXPORT(rt_hw_lcd_init);
 
 int lcd_test()

@@ -390,6 +390,11 @@
               <FileType>1</FileType>
               <FilePath>.\src\hal_entry.c</FilePath>
             </File>
+            <File>
+              <FileName>raw_data.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\src\raw_data.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

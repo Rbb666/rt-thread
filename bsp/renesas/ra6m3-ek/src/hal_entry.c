@@ -16,7 +16,7 @@
 
 void hal_entry(void)
 {
-    rt_kprintf("\nHello RT-Thread!\n");
+    rt_kprintf("\nHello RT-Thread!!!\n");
 
     while (1)
     {

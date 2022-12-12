@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2023, RT-Thread Development Team
+ * Copyright (c) 2006-2022, RT-Thread Development Team
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -8,16 +8,16 @@
  * 2021-11-24     Rbb666       The first version
  */
 #include <lvgl.h>
+
+#include "lcd_port.h"
 #include "hal_data.h"
 
 #if DLG_LVGL_USE_GPU_RA6M3
-    #include "lv_port_gpu.h"
+    #include "lv_gpu_d2_ra6m3.h"
 #endif
 
 #ifdef BSP_USING_SPI_LCD
     #include "lcd_ili9341.h"
-#else
-    #include "lcd_port.h"
 #endif
 
 #define COLOR_BUFFER  (LV_HOR_RES_MAX * LV_VER_RES_MAX / 4)
@@ -27,24 +27,14 @@ static lv_disp_draw_buf_t disp_buf;
 
 /*Descriptor of a display driver*/
 static lv_disp_drv_t disp_drv;
-static struct rt_device_graphic_info info;
 
 /*Static or global buffer(s). The second buffer is optional*/
 // 0x1FFE0000    0x20040000
-__attribute__((section(".ARM.__at_0x1FFE0000"))) lv_color_t buf_1[COLOR_BUFFER];
+static lv_color_t buf_1[COLOR_BUFFER];
+//static lv_color_t buf_2[COLOR_BUFFER];
+static struct rt_device_graphic_info info;
 
 #if !DLG_LVGL_USE_GPU_RA6M3
-void _ra_port_display_callback(display_callback_args_t * p_args)
-{
-    /* enter interrupt */
-    rt_interrupt_enter();
-
-    /* TODO */
-
-    /* leave interrupt */
-    rt_interrupt_leave();
-}
-
 static void color_to16_maybe(lv_color16_t *dst, lv_color_t *src)
 {
 #if (LV_COLOR_DEPTH == 16)
@@ -62,7 +52,12 @@ static void disp_flush(lv_disp_drv_t *disp_drv, const lv_area_t *area, lv_color_
 #ifdef BSP_USING_SPI_LCD
     lcd_fill_array_spi(area->x1, area->y1, area->x2, area->y2, color_p);
 #elif DLG_LVGL_USE_GPU_RA6M3
-    lv_port_gpu_flush();
+    extern void lv_port_gpu_blit(int32_t      x,
+                                 int32_t      y,
+                                 const void *p,
+                                 const lv_area_t *area);
+
+    lv_port_gpu_blit(area->x1, area->y1, color_p, area);
 #else
     int x1, x2, y1, y2;
 
@@ -115,6 +110,7 @@ void lv_port_disp_init(void)
     spi_lcd_init();
 #else
     static rt_device_t device;
+
     /* LCD Device Init */
     device = rt_device_find("lcd");
     RT_ASSERT(device != RT_NULL);
@@ -127,8 +123,9 @@ void lv_port_disp_init(void)
     RT_ASSERT(info.bits_per_pixel == 8 || info.bits_per_pixel == 16 ||
               info.bits_per_pixel == 24 || info.bits_per_pixel == 32);
 #endif
+
     /*Initialize `disp_buf` with the buffer(s). With only one buffer use NULL instead buf_2 */
-    lv_disp_draw_buf_init(&disp_buf, buf_1, NULL, COLOR_BUFFER);
+    lv_disp_draw_buf_init(&disp_buf, buf_1, RT_NULL, COLOR_BUFFER);
 
     lv_disp_drv_init(&disp_drv); /*Basic initialization*/
 
@@ -145,7 +142,7 @@ void lv_port_disp_init(void)
 #if DLG_LVGL_USE_GPU_RA6M3
     /* Initialize GPU module */
     lv_port_gpu_init();
-#endif /* LV_PORT_DISP_GPU_EN */
+#endif
 
     /*Finally register the driver*/
     lv_disp_drv_register(&disp_drv);
