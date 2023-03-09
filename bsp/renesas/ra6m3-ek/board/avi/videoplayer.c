@@ -89,7 +89,7 @@ void video_entry(void *paramer)
     uint32_t Strsize;
     uint32_t Strtype;
     uint8_t *pbuffer;
-    uint32_t buffer_size = 40 * 1024;
+    uint32_t buffer_size = 30 * 1024;
     uint32_t alltime;
 //    uint32_t cur_time;
 
@@ -177,9 +177,9 @@ void video_entry(void *paramer)
         BytesRD += Strsize + 8;
     }
 EXIT:
-    close(fd);
-    rt_free(pbuffer);
     pwm_audio_deinit();
+    rt_free(pbuffer);
+    close(fd);
 }
 
 int avi_player_init(int argc, const char *argv[])

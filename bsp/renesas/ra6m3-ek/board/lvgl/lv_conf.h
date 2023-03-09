@@ -34,6 +34,22 @@
     #define LV_DPI_DEF              89
 #endif
 
+#define LV_USE_FILE_EXPLORER    1
+#if LV_USE_FILE_EXPLORER
+    /*Maximum length of path*/
+    #define LV_FILE_EXPLORER_PATH_MAX_LEN        (128)
+    /*Quick access bar, 1:use, 0:not use*/
+    /*Requires: lv_list*/
+    #define LV_FILE_EXPLORER_QUICK_ACCESS        0
+#endif
+
+#define LV_USE_FS_STDIO 1
+#if LV_USE_FS_STDIO
+    #define LV_FS_STDIO_LETTER '/'     /*Set an upper cased letter on which the drive will accessible (e.g. 'A')*/
+    #define LV_FS_STDIO_PATH "/"         /*Set the working directory. File/directory paths will be appended to it.*/
+    #define LV_FS_STDIO_CACHE_SIZE  0   /*>0 to cache this number of bytes in lv_fs_read()*/
+#endif
+
 #define DLG_LVGL_USE_GPU_RA6M3  1
 
 #define CONFIG_LV_DISP_DEF_REFR_PERIOD PKG_LVGL_DISP_REFR_PERIOD

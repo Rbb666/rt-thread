@@ -28,7 +28,7 @@ static uint8_t g_OutBuffer[JPEG_NUMBYTES_OUTBUFFER] BSP_ALIGN_VARIABLE(8);
 static rt_sem_t _SemaphoreJPEG = RT_NULL;
 
 // jpeg and lvgl can only select one
-RT_WEAK void _ra_port_display_callback(display_callback_args_t *p_args)
+rt_weak void _ra_port_display_callback(display_callback_args_t *p_args)
 {
     if (DISPLAY_EVENT_LINE_DETECTION == p_args->event)
     {
@@ -59,7 +59,7 @@ static lv_obj_t *win_obj = RT_NULL;
 void lv_avi_create(void)
 {
     win_obj = lv_obj_create(lv_scr_act());
-    lv_obj_set_size(win_obj, JPEG_WIDTH, JPEG_HEIGHT);
+    lv_obj_set_size(win_obj, 480, 272);
     lv_obj_align(win_obj, LV_ALIGN_CENTER, 0, 0);
     lv_obj_set_style_border_width(win_obj, 0, LV_STATE_DEFAULT);
     lv_obj_set_style_bg_color(win_obj, lv_color_black(), LV_STATE_DEFAULT);
@@ -90,7 +90,7 @@ void lv_avi_player_draw(int32_t x, int32_t y, void *pInBuffer, int32_t xSize, in
 
     if (y == JPEG_HEIGHT - 16)
     {
-        img_dsc.data_size = ySize * xSize * 2;
+        img_dsc.data_size = ySize * xSize * sizeof(lv_color16_t);
         img_dsc.data = (const uint8_t *)fbp16;
         lv_img_set_src(avi_obj, &img_dsc);
     }

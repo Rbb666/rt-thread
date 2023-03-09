@@ -23,13 +23,6 @@
 #define CHANNEL_RIGHT_MASK  (0x02)
 #define VOLUME_0DB          (16)
 
-#define PWM_AUDIO_CHECK(a, str, ret_val)                          \
-    if (!(a))                                                     \
-    {                                                             \
-        rt_kprintf("%s(%d): %s", __FUNCTION__, __LINE__, str);    \
-        return (ret_val);                                         \
-    }
-
 typedef struct
 {
     char *buf;                         /**< Original pointer */
@@ -225,14 +218,14 @@ rt_err_t pwm_audio_init(const pwm_audio_config_t *cfg)
 
     pwm_audio_handle_t handle = NULL;
 
+    int level = rt_hw_interrupt_disable();
+
     handle = rt_malloc(sizeof(pwm_audio_handle));
     RT_ASSERT(handle != NULL);
     memset(handle, 0, sizeof(pwm_audio_handle));
 
     handle->ringbuf = rb_create(cfg->ringbuf_len);
     RT_ASSERT(handle->ringbuf != NULL);
-
-    int level = rt_hw_interrupt_disable();
 
     handle->sem_complete = rt_sem_create("pwm_cpl_sem", 0, RT_IPC_FLAG_PRIO);
     RT_ASSERT(handle->sem_complete != NULL);
@@ -611,15 +604,15 @@ void cb_timer2(timer_callback_args_t *p_args)
 
         int err = -RT_ERROR;
 
-        int level = rt_hw_interrupt_disable();
+        rt_interrupt_enter();
         err = rt_sem_release(rb->semaphore_rb);
-        rt_hw_interrupt_enable(level);
+        rt_interrupt_leave();
 
         if (rb_get_count(rb) <= 1)
         {
-            int level = rt_hw_interrupt_disable();
+            rt_interrupt_enter();
             err = rt_sem_release(handle->sem_complete);
-            rt_hw_interrupt_enable(level);
+            rt_interrupt_leave();
         }
         if (err != RT_ERROR)
         {
@@ -658,6 +651,6 @@ rt_err_t pwm_audio_deinit(void)
     //
     rt_sem_delete(handle->sem_complete);
     rb_destroy(handle->ringbuf);
-    free(handle);
+    rt_free(handle);
     return RT_EOK;
 }
