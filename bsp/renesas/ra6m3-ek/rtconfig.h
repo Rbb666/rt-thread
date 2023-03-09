@@ -7,7 +7,7 @@
 /* RT-Thread Kernel */
 
 #define RT_NAME_MAX 8
-#define RT_ALIGN_SIZE 8
+#define RT_ALIGN_SIZE 4
 #define RT_THREAD_PRIORITY_32
 #define RT_THREAD_PRIORITY_MAX 32
 #define RT_TICK_PER_SECOND 1000
@@ -38,7 +38,10 @@
 
 #define RT_PAGE_MAX_ORDER 11
 #define RT_USING_SMALL_MEM
+#define RT_USING_MEMHEAP
+#define RT_MEMHEAP_FAST_MODE
 #define RT_USING_SMALL_MEM_AS_HEAP
+#define RT_USING_MEMTRACE
 #define RT_USING_HEAP
 
 /* Kernel Device Object */
@@ -102,9 +105,12 @@
 #define RT_USING_SERIAL
 #define RT_USING_SERIAL_V2
 #define RT_SERIAL_USING_DMA
+#define RT_USING_I2C
+#define RT_USING_I2C_BITOPS
 #define RT_USING_PIN
 #define RT_USING_SPI
 #define RT_USING_SPI_MSD
+#define RT_USING_TOUCH
 
 /* Using USB */
 
@@ -203,6 +209,9 @@
 
 /* Kendryte SDK */
 
+#define PKG_USING_TOUCH_DRIVERS
+#define PKG_USING_FT5426
+#define PKG_USING_FT5426_LATEST_VERSION
 
 /* AI packages */
 
@@ -247,6 +256,9 @@
 #define BSP_USING_UART7
 #define BSP_UART7_RX_BUFSIZE 256
 #define BSP_UART7_TX_BUFSIZE 0
+#define BSP_USING_I2C
+#define BSP_USING_HW_I2C
+#define BSP_USING_HW_I2C2
 #define BSP_USING_SPI
 #define BSP_USING_SPI0
 #define BSP_USING_SPI1

@@ -52,9 +52,30 @@ static void _DrawBitmap(int32_t x, int32_t y, void const *p, int32_t xSize, int3
 }
 
 #include <lvgl.h>
+#include "lv_file_explorer.h"
 
 static lv_obj_t *avi_obj = RT_NULL;
 static lv_obj_t *win_obj = RT_NULL;
+
+static void file_explorer_event_cb(lv_event_t * e)
+{
+    lv_event_code_t code = lv_event_get_code(e);
+    lv_obj_t * file_explorer = lv_event_get_target(e);
+    
+    if(code == LV_EVENT_VALUE_CHANGED) 
+    {
+        char * path = lv_file_explorer_get_current_path(file_explorer);
+        char * fn = lv_file_explorer_get_selected_file_name(file_explorer);
+        
+        uint16_t path_len = strlen(path);
+        uint16_t fn_len = strlen(fn);
+        
+        if ((path_len + fn_len) <= LV_FILE_EXPLORER_PATH_MAX_LEN)
+        {
+            
+        }
+    }
+}
 
 void lv_avi_create(void)
 {
@@ -63,10 +84,17 @@ void lv_avi_create(void)
     lv_obj_align(win_obj, LV_ALIGN_CENTER, 0, 0);
     lv_obj_set_style_border_width(win_obj, 0, LV_STATE_DEFAULT);
     lv_obj_set_style_bg_color(win_obj, lv_color_black(), LV_STATE_DEFAULT);
+    
+    lv_obj_t * file_explorer = lv_file_explorer_create(win_obj);
+    /*Before custom sort, please set the default sorting to NONE. The default is NONE.*/
+    lv_file_explorer_set_sort(file_explorer, LV_EXPLORER_SORT_NONE);
+    lv_file_explorer_open_dir(file_explorer, "/");
+    
+    lv_obj_add_event_cb(file_explorer, file_explorer_event_cb, LV_EVENT_VALUE_CHANGED, win_obj);
 
-    avi_obj = lv_img_create(win_obj);
-    lv_obj_set_size(avi_obj, JPEG_WIDTH, JPEG_HEIGHT);
-    lv_obj_align(avi_obj, LV_ALIGN_CENTER, 0, 0);
+//    avi_obj = lv_img_create(win_obj);
+//    lv_obj_set_size(avi_obj, JPEG_WIDTH, JPEG_HEIGHT);
+//    lv_obj_align(avi_obj, LV_ALIGN_CENTER, 0, 0);
 }
 
 static uint16_t lv_show_buffer[JPEG_WIDTH * JPEG_HEIGHT] BSP_ALIGN_VARIABLE(16);
