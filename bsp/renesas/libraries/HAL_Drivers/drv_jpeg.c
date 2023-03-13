@@ -18,9 +18,6 @@
 #define JPEG_NUMBYTES_OUTBUFFER     (DCODE_BUFFER_SIZE)
 #define JPEG_TIMEOUT                (100)
 
-#define JPEG_WIDTH  400
-#define JPEG_HEIGHT 240
-
 volatile static jpeg_status_t g_jpeg_status = JPEG_STATUS_NONE;
 
 static uint8_t g_OutBuffer[JPEG_NUMBYTES_OUTBUFFER] BSP_ALIGN_VARIABLE(8);
@@ -49,79 +46,6 @@ static void _DrawBitmap(int32_t x, int32_t y, void const *p, int32_t xSize, int3
                                  int32_t      ySize);
 
     LCDCONF_DrawJPEG(x, y, p, xSize, ySize);
-}
-
-#include <lvgl.h>
-#include "lv_file_explorer.h"
-
-static lv_obj_t *avi_obj = RT_NULL;
-static lv_obj_t *win_obj = RT_NULL;
-
-static void file_explorer_event_cb(lv_event_t * e)
-{
-    lv_event_code_t code = lv_event_get_code(e);
-    lv_obj_t * file_explorer = lv_event_get_target(e);
-    
-    if(code == LV_EVENT_VALUE_CHANGED) 
-    {
-        char * path = lv_file_explorer_get_current_path(file_explorer);
-        char * fn = lv_file_explorer_get_selected_file_name(file_explorer);
-        
-        uint16_t path_len = strlen(path);
-        uint16_t fn_len = strlen(fn);
-        
-        if ((path_len + fn_len) <= LV_FILE_EXPLORER_PATH_MAX_LEN)
-        {
-            
-        }
-    }
-}
-
-void lv_avi_create(void)
-{
-    win_obj = lv_obj_create(lv_scr_act());
-    lv_obj_set_size(win_obj, 480, 272);
-    lv_obj_align(win_obj, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_set_style_border_width(win_obj, 0, LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_color(win_obj, lv_color_black(), LV_STATE_DEFAULT);
-    
-    lv_obj_t * file_explorer = lv_file_explorer_create(win_obj);
-    /*Before custom sort, please set the default sorting to NONE. The default is NONE.*/
-    lv_file_explorer_set_sort(file_explorer, LV_EXPLORER_SORT_NONE);
-    lv_file_explorer_open_dir(file_explorer, "/");
-    
-    lv_obj_add_event_cb(file_explorer, file_explorer_event_cb, LV_EVENT_VALUE_CHANGED, win_obj);
-
-//    avi_obj = lv_img_create(win_obj);
-//    lv_obj_set_size(avi_obj, JPEG_WIDTH, JPEG_HEIGHT);
-//    lv_obj_align(avi_obj, LV_ALIGN_CENTER, 0, 0);
-}
-
-static uint16_t lv_show_buffer[JPEG_WIDTH * JPEG_HEIGHT] BSP_ALIGN_VARIABLE(16);
-void lv_avi_player_draw(int32_t x, int32_t y, void *pInBuffer, int32_t xSize, int32_t ySize)
-{
-    static lv_img_dsc_t img_dsc =
-    {
-        .header.always_zero = 0,
-        .header.w = JPEG_WIDTH,
-        .header.h = JPEG_HEIGHT,
-        .header.cf = LV_IMG_CF_TRUE_COLOR,
-        .data_size = JPEG_WIDTH * JPEG_HEIGHT * sizeof(lv_color16_t),
-        .data = NULL,
-    };
-
-    uint16_t *fbp16 = (uint16_t *)lv_show_buffer;
-    long int location = 0;
-
-    location = x + y * JPEG_WIDTH;
-    rt_memcpy(&fbp16[location], pInBuffer, (ySize * JPEG_WIDTH * sizeof(lv_color16_t)));
-
-    if (y == JPEG_HEIGHT - 16)
-    {
-        img_dsc.data_size = ySize * xSize * sizeof(lv_color16_t);
-        img_dsc.data = (const uint8_t *)fbp16;
-        lv_img_set_src(avi_obj, &img_dsc);
-    }
 }
 
 int JPEG_X_Draw(void *p, int x0, int y0)
@@ -243,6 +167,7 @@ int JPEG_X_Draw(void *p, int x0, int y0)
                 R_JPEG_DecodeLinesDecodedGet(&g_jpeg0_ctrl, &LinesDecoded);
 
 //                _DrawBitmap(x, y, (void const *) pOutBuffer, xSize, (int32_t) LinesDecoded);
+                extern void lv_avi_player_draw(int32_t x, int32_t y, void *pInBuffer, int32_t xSize, int32_t ySize);
                 lv_avi_player_draw(x, y, (void *) pOutBuffer, xSize, (int32_t)LinesDecoded);
 
                 y = y + (int32_t)LinesDecoded;

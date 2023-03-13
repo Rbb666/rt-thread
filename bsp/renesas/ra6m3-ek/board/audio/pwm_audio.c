@@ -38,8 +38,10 @@ typedef ringBuf *ringbuf_handle_t;
 typedef struct
 {
     pwm_audio_config_t    config;                          /**< pwm audio config struct */
-    timer_cfg_t           g_timer_cfg;                     /**< ledc timer config  */
-    gpt_instance_ctrl_t   *g_timer_ctrl;                   /**< timer group register pointer */
+    timer_cfg_t           pwm_timer_cfg;                   /**< ledc timer config  */
+    timer_cfg_t           gen_timer_cfg;                   /**< general timer config  */
+    gpt_instance_ctrl_t   *pwm_timer_ctrl;                 /**< timer group register pointer */
+    gpt_instance_ctrl_t   *gen_timer_ctrl;                 /**< timer group register pointer */
     ringbuf_handle_t      ringbuf;                         /**< audio ringbuffer pointer */
     uint32_t              channel_mask;                    /**< channel gpio mask */
     uint32_t              channel_set_num;                 /**< channel audio set number */
@@ -248,11 +250,11 @@ rt_err_t pwm_audio_init(const pwm_audio_config_t *cfg)
     RT_ASSERT(0 != handle->channel_mask);
 
     //
-    handle->g_timer_cfg = g_timer12_cfg;
-    handle->g_timer_ctrl = &g_timer12_ctrl;
+    handle->pwm_timer_cfg = g_timer12_cfg;
+    handle->pwm_timer_ctrl = &g_timer12_ctrl;
 
-    R_GPT_Open(handle->g_timer_ctrl, &handle->g_timer_cfg);
-    R_GPT_Start(handle->g_timer_ctrl);
+    R_GPT_Open(handle->pwm_timer_ctrl, &handle->pwm_timer_cfg);
+    R_GPT_Start(handle->pwm_timer_ctrl);
     //
 
     /**< set a initial parameter */
@@ -279,17 +281,16 @@ rt_err_t pwm_audio_set_param(int rate, uint8_t bits, int ch)
     handle->framerate = rate;
     handle->bits_per_sample = bits;
     handle->channel_set_num = ch;
-
-    //
-    gpt_instance_ctrl_t *ctrl = NULL;
-    ctrl = &g_timer2_ctrl;
+    
+    handle->gen_timer_cfg = g_timer2_cfg;
+    handle->gen_timer_ctrl = &g_timer2_ctrl;
 
     timer_cfg_t *config = NULL;
     config = (struct st_timer_cfg *)&g_timer2_cfg;
 
-    R_GPT_Open(ctrl, config);
-    R_GPT_Start(ctrl);
-    //
+    R_GPT_Open(handle->gen_timer_ctrl, &handle->gen_timer_cfg);
+    R_GPT_Start(handle->gen_timer_ctrl);
+
     return res;
 }
 
@@ -481,14 +482,14 @@ static inline void ledc_set_left_duty_fast(uint32_t duty_val)
 {
     pwm_audio_handle_t handle = g_pwm_audio_handle;
 //    *g_ledc_left_duty_val = (duty_val) << 4; /* Discard decimal part */
-    R_GPT_DutyCycleSet(handle->g_timer_ctrl, duty_val, GPT_IO_PIN_GTIOCA);
+    R_GPT_DutyCycleSet(handle->pwm_timer_ctrl, duty_val, GPT_IO_PIN_GTIOCA);
 }
 
 static inline void ledc_set_right_duty_fast(uint32_t duty_val)
 {
     pwm_audio_handle_t handle = g_pwm_audio_handle;
 //    *g_ledc_right_duty_val = (duty_val) << 4; /* Discard decimal part */
-    R_GPT_DutyCycleSet(handle->g_timer_ctrl, duty_val, GPT_IO_PIN_GTIOCB);
+    R_GPT_DutyCycleSet(handle->pwm_timer_ctrl, duty_val, GPT_IO_PIN_GTIOCB);
 }
 
 void cb_timer2(timer_callback_args_t *p_args)
@@ -631,7 +632,7 @@ rt_err_t pwm_audio_stop(void)
     /**< timer disable interrupt */
     int level = rt_hw_interrupt_disable();
     //
-    R_GPT_Stop(handle->g_timer_ctrl);
+    R_GPT_Stop(handle->pwm_timer_ctrl);
     //
     rt_hw_interrupt_enable(level);
 
@@ -647,7 +648,8 @@ rt_err_t pwm_audio_deinit(void)
 
     handle->status = PWM_AUDIO_STATUS_UN_INIT;
     //
-    R_GPT_Close(handle->g_timer_ctrl);
+    R_GPT_Close(handle->pwm_timer_ctrl);
+    R_GPT_Close(handle->gen_timer_ctrl);
     //
     rt_sem_delete(handle->sem_complete);
     rb_destroy(handle->ringbuf);

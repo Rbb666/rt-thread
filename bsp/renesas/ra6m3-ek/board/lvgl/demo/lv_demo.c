@@ -16,8 +16,8 @@ void lv_user_gui_init(void)
 //    extern void lv_demo_music(void);
 //    lv_demo_music();
 
-    extern void lv_avi_create(void);
-    lv_avi_create();
+    extern void lv_video_gui_init(void);
+    lv_video_gui_init();
 //    extern void lv_demo_benchmark_run_scene(lv_demo_benchmark_mode_t _mode, uint16_t scene_no);
 //    lv_demo_benchmark_run_scene(LV_DEMO_BENCHMARK_MODE_RENDER_AND_DRIVER, 26*2-1);
 
