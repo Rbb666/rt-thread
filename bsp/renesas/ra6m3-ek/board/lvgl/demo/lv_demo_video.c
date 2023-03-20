@@ -11,6 +11,7 @@
 #include <rtthread.h>
 #include <lcd_port.h>
 #include "drv_jpeg.h"
+#include "player.h"
 
 #include "lv_file_explorer.h"
 
@@ -32,18 +33,17 @@ typedef enum {
     LV_FILE_EXPLORER_CLOSE,
 } lv_file_btn_starte_t;
 
+typedef enum {
+    LV_MUSIC_PLAY,
+    LV_MUSIC_STOP,
+} play_btn_starte_t;
+
 typedef struct
 {
     lv_obj_t obj;
     char *cur_fn;
     lv_mdeia_state_t state;
 } lv_media_obj_t;
-
-struct q_rx_msg
-{
-    char *data;
-    rt_size_t size;
-};
 
 const lv_obj_class_t lv_media_class = 
 {
@@ -53,11 +53,29 @@ const lv_obj_class_t lv_media_class =
     .base_class = &lv_obj_class
 };
 
+LV_IMG_DECLARE(ui_img_prev_png); 
+LV_IMG_DECLARE(ui_img_next_png); 
+LV_IMG_DECLARE(ui_img_pause_png);
+LV_IMG_DECLARE(ui_img_run_png);
+
+static lv_obj_t *win_obj;
+
 static lv_obj_t *avi_obj;
 static lv_obj_t *file_explorer_panel;
 static lv_obj_t *file_ImgButton;
 static rt_bool_t btn_state_change = RT_FALSE;
-extern rt_mq_t video_msg_mq;
+static rt_bool_t play_state_change = RT_FALSE;
+
+//
+static lv_obj_t * ui_ImgButton3;
+static lv_obj_t * ui_ImgButton1;
+static lv_obj_t * ui_ImgButton2;
+
+static lv_obj_t * ui_Indicator_Left;
+
+extern struct player v_player;
+
+static void func_button_create(lv_obj_t *parent);
 
 static uint16_t lv_show_buffer[JPEG_WIDTH * JPEG_HEIGHT] BSP_ALIGN_VARIABLE(16);
 
@@ -127,8 +145,8 @@ static void file_explorer_event_cb(lv_event_t *e)
             char sel_fn[LV_FILE_EXPLORER_PATH_MAX_LEN];
 
             strcpy(sel_fn, path);
-            if (*(path + path_len) != '/')
-                strcat(sel_fn, "/");
+//            if (*(path + path_len) != '/')
+//                strcat(sel_fn, "/");
             strcat(sel_fn, fn);
             rt_kprintf("path:%s\n", sel_fn);
 
@@ -138,11 +156,13 @@ static void file_explorer_event_cb(lv_event_t *e)
             
             rt_kprintf("send len:%d\n", strlen(sel_fn));
             
-            struct q_rx_msg msg;
-            msg.data = sel_fn;
-            msg.size = strlen(sel_fn);
-
-            rt_mq_send(video_msg_mq, &msg, sizeof(msg));
+            player_control(&v_player, PLAYER_CMD_INIT, sel_fn);
+            
+            /* delete button */
+            lv_obj_del(file_ImgButton);
+            lv_obj_del_delayed(file_explorer_panel, 2000);
+            
+            func_button_create(win_obj);
         }
     }
 }
@@ -166,6 +186,11 @@ void _ui_anim_callback_set_width(lv_anim_t * a, int32_t v)
 void _ui_anim_callback_set_height(lv_anim_t * a, int32_t v)
 {
     lv_obj_set_height((lv_obj_t *)a->user_data, v);
+}
+
+int32_t _ui_anim_callback_get_y(lv_anim_t * a)
+{
+    return lv_obj_get_y_aligned((lv_obj_t *)a->user_data);
 }
 
 void roll_out_Animation(lv_obj_t * TargetObject, int delay)
@@ -288,18 +313,119 @@ void take_back_Animation(lv_obj_t * TargetObject, int delay)
     lv_anim_start(&PropertyAnimation_3);
 }
 
-void file_ImgButton_event(lv_event_t *e)
+void btn3_comein_Animation(lv_obj_t * TargetObject, int delay)
+{
+    lv_anim_t PropertyAnimation_0;
+    lv_anim_init(&PropertyAnimation_0);
+    lv_anim_set_time(&PropertyAnimation_0, 500);
+    lv_anim_set_user_data(&PropertyAnimation_0, TargetObject);
+    lv_anim_set_custom_exec_cb(&PropertyAnimation_0, _ui_anim_callback_set_y);
+    lv_anim_set_values(&PropertyAnimation_0, 240, 0);
+    lv_anim_set_path_cb(&PropertyAnimation_0, lv_anim_path_ease_out);
+    lv_anim_set_delay(&PropertyAnimation_0, delay + 0);
+    lv_anim_set_playback_time(&PropertyAnimation_0, 0);
+    lv_anim_set_playback_delay(&PropertyAnimation_0, 0);
+    lv_anim_set_repeat_count(&PropertyAnimation_0, 0);
+    lv_anim_set_repeat_delay(&PropertyAnimation_0, 0);
+    lv_anim_set_early_apply(&PropertyAnimation_0, false);
+    lv_anim_set_get_value_cb(&PropertyAnimation_0, &_ui_anim_callback_get_y);
+    lv_anim_start(&PropertyAnimation_0);
+
+}
+void btn2_comein_Animation(lv_obj_t * TargetObject, int delay)
+{
+    lv_anim_t PropertyAnimation_0;
+    lv_anim_init(&PropertyAnimation_0);
+    lv_anim_set_time(&PropertyAnimation_0, 650);
+    lv_anim_set_user_data(&PropertyAnimation_0, TargetObject);
+    lv_anim_set_custom_exec_cb(&PropertyAnimation_0, _ui_anim_callback_set_y);
+    lv_anim_set_values(&PropertyAnimation_0, 240, 0);
+    lv_anim_set_path_cb(&PropertyAnimation_0, lv_anim_path_ease_out);
+    lv_anim_set_delay(&PropertyAnimation_0, delay + 0);
+    lv_anim_set_playback_time(&PropertyAnimation_0, 0);
+    lv_anim_set_playback_delay(&PropertyAnimation_0, 0);
+    lv_anim_set_repeat_count(&PropertyAnimation_0, 0);
+    lv_anim_set_repeat_delay(&PropertyAnimation_0, 0);
+    lv_anim_set_early_apply(&PropertyAnimation_0, false);
+    lv_anim_set_get_value_cb(&PropertyAnimation_0, &_ui_anim_callback_get_y);
+    lv_anim_start(&PropertyAnimation_0);
+
+}
+
+void btn1_comein_Animation(lv_obj_t * TargetObject, int delay)
+{
+    lv_anim_t PropertyAnimation_0;
+    lv_anim_init(&PropertyAnimation_0);
+    lv_anim_set_time(&PropertyAnimation_0, 800);
+    lv_anim_set_user_data(&PropertyAnimation_0, TargetObject);
+    lv_anim_set_custom_exec_cb(&PropertyAnimation_0, _ui_anim_callback_set_y);
+    lv_anim_set_values(&PropertyAnimation_0, 240, 0);
+    lv_anim_set_path_cb(&PropertyAnimation_0, lv_anim_path_ease_out);
+    lv_anim_set_delay(&PropertyAnimation_0, delay + 0);
+    lv_anim_set_playback_time(&PropertyAnimation_0, 0);
+    lv_anim_set_playback_delay(&PropertyAnimation_0, 0);
+    lv_anim_set_repeat_count(&PropertyAnimation_0, 0);
+    lv_anim_set_repeat_delay(&PropertyAnimation_0, 0);
+    lv_anim_set_early_apply(&PropertyAnimation_0, false);
+    lv_anim_set_get_value_cb(&PropertyAnimation_0, &_ui_anim_callback_get_y);
+    lv_anim_start(&PropertyAnimation_0);
+
+}
+
+#define set_pause_picture lv_imgbtn_set_src(ui_ImgButton2, LV_IMGBTN_STATE_RELEASED, NULL, &ui_img_pause_png, NULL)
+#define set_play_picture lv_imgbtn_set_src(ui_ImgButton2, LV_IMGBTN_STATE_RELEASED, NULL, &ui_img_run_png, NULL)
+
+void Button_event(lv_event_t *e)
 {
     lv_event_code_t event_code = lv_event_get_code(e);
-
-    if(event_code == LV_EVENT_RELEASED)
+    lv_obj_t * target = lv_event_get_target(e);
+    
+    if (target == file_ImgButton)
     {
-        btn_state_change = !btn_state_change;
+        if(event_code == LV_EVENT_RELEASED)
+        {
+            btn_state_change = !btn_state_change;
 
-        btn_state_change == LV_FILE_EXPLORER_OPEN ?         \
-            roll_out_Animation(file_explorer_panel, 0) :    \
-            take_back_Animation(file_explorer_panel, 0);    \
+            btn_state_change == LV_FILE_EXPLORER_OPEN ?         \
+                roll_out_Animation(file_explorer_panel, 0) :    \
+                take_back_Animation(file_explorer_panel, 0);    \
+        }
     }
+    // next
+    if (target == ui_ImgButton1)
+    {
+        if(event_code == LV_EVENT_RELEASED)
+        {
+            player_control(&v_player, PLAYER_CMD_NEXT, RT_NULL);
+        }
+    }
+    // pause
+    if (target == ui_ImgButton2)
+    {
+        if(event_code == LV_EVENT_RELEASED)
+        {
+            play_state_change = !play_state_change;
+            play_state_change == LV_MUSIC_PLAY ?                                        \
+                player_control(&v_player, PLAYER_CMD_PLAY, RT_NULL), set_play_picture:  \
+                player_control(&v_player, PLAYER_CMD_STOP, RT_NULL), set_pause_picture; \
+        }
+    }
+    // prev
+    if (target == ui_ImgButton3)
+    {
+        if(event_code == LV_EVENT_RELEASED)
+        {
+            player_control(&v_player, PLAYER_CMD_LAST, RT_NULL);
+        }
+    }
+}
+
+static void slider_event_cb(lv_event_t *event)
+{
+    int16_t volume;
+    lv_obj_t *slider = lv_event_get_target(event);
+    volume = lv_slider_get_value(slider);
+    player_control(&v_player, PLAYER_CMD_SET_VOL, &volume);
 }
 
 lv_obj_t *lv_media_page_create(lv_obj_t *parent)
@@ -322,7 +448,7 @@ void file_explorer_create(lv_obj_t *parent)
     lv_obj_center(file_explorer_panel);
 
     lv_file_explorer_set_sort(file_explorer_panel, LV_EXPLORER_SORT_NONE);
-    lv_file_explorer_open_dir(file_explorer_panel, "/");
+    lv_file_explorer_open_dir(file_explorer_panel, "/res");
 
     lv_obj_add_event_cb(file_explorer_panel, file_explorer_event_cb, LV_EVENT_VALUE_CHANGED, parent);
 }
@@ -336,7 +462,76 @@ void file_ImgButton_create(lv_obj_t *parent)
     lv_obj_set_size(file_ImgButton, 62, 62);
     lv_obj_align(file_ImgButton, LV_ALIGN_TOP_RIGHT, 0, 0);
 
-    lv_obj_add_event_cb(file_ImgButton, file_ImgButton_event, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(file_ImgButton, Button_event, LV_EVENT_ALL, NULL);
+}
+
+void func_button_create(lv_obj_t *parent)
+{
+    ui_ImgButton3 = lv_imgbtn_create(parent);
+    lv_imgbtn_set_src(ui_ImgButton3, LV_IMGBTN_STATE_RELEASED, NULL, &ui_img_prev_png, NULL);
+    lv_obj_set_width(ui_ImgButton3, 35);
+    lv_obj_set_height(ui_ImgButton3, 35);
+    lv_obj_set_x(ui_ImgButton3, 220);
+    lv_obj_set_y(ui_ImgButton3, -69);
+    lv_obj_set_align(ui_ImgButton3, LV_ALIGN_CENTER);
+
+    ui_ImgButton1 = lv_imgbtn_create(parent);
+    lv_imgbtn_set_src(ui_ImgButton1, LV_IMGBTN_STATE_RELEASED, NULL, &ui_img_next_png, NULL);
+    lv_obj_set_width(ui_ImgButton1, 35);
+    lv_obj_set_height(ui_ImgButton1, 35);
+    lv_obj_set_x(ui_ImgButton1, 220);
+    lv_obj_set_y(ui_ImgButton1, 56);
+    lv_obj_set_align(ui_ImgButton1, LV_ALIGN_CENTER);
+
+    ui_ImgButton2 = lv_imgbtn_create(parent);
+    lv_imgbtn_set_src(ui_ImgButton2, LV_IMGBTN_STATE_RELEASED, NULL, &ui_img_pause_png, NULL);
+    lv_obj_set_width(ui_ImgButton2, 35);
+    lv_obj_set_height(ui_ImgButton2, 35);
+    lv_obj_set_x(ui_ImgButton2, 220);
+    lv_obj_set_y(ui_ImgButton2, -7);
+    lv_obj_set_align(ui_ImgButton2, LV_ALIGN_CENTER);
+    
+    btn1_comein_Animation(ui_ImgButton1, 0);
+    btn2_comein_Animation(ui_ImgButton2, 0);
+    btn3_comein_Animation(ui_ImgButton3, 0);
+    
+    lv_obj_add_event_cb(ui_ImgButton1, Button_event, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(ui_ImgButton2, Button_event, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(ui_ImgButton3, Button_event, LV_EVENT_ALL, NULL);
+}
+
+void sound_slider_create(lv_obj_t *parent)
+{
+    LV_IMG_DECLARE(ui_img_indicator_ver_png);
+
+    ui_Indicator_Left = lv_slider_create(parent);
+    lv_slider_set_range(ui_Indicator_Left, -16, 16);
+    lv_slider_set_mode(ui_Indicator_Left, LV_SLIDER_MODE_SYMMETRICAL);
+    lv_obj_set_width(ui_Indicator_Left, 20);
+    lv_obj_set_height(ui_Indicator_Left, 200);
+    lv_obj_set_align(ui_Indicator_Left, LV_ALIGN_LEFT_MID);
+    lv_obj_set_style_radius(ui_Indicator_Left, 4, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(ui_Indicator_Left, lv_color_hex(0x272A33), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_Indicator_Left, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_main_stop(ui_Indicator_Left, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_grad_stop(ui_Indicator_Left, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(ui_Indicator_Left, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_left(ui_Indicator_Left, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_right(ui_Indicator_Left, 2, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_top(ui_Indicator_Left, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_pad_bottom(ui_Indicator_Left, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    lv_obj_set_style_radius(ui_Indicator_Left, 4, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(ui_Indicator_Left, lv_color_hex(0xFFFFFF), LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_Indicator_Left, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_main_stop(ui_Indicator_Left, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_grad_stop(ui_Indicator_Left, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_img_src(ui_Indicator_Left, &ui_img_indicator_ver_png, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+
+    lv_obj_set_style_bg_color(ui_Indicator_Left, lv_color_hex(0xFFFFFF), LV_PART_KNOB | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_Indicator_Left, 0, LV_PART_KNOB | LV_STATE_DEFAULT);
+    
+    lv_obj_add_event_cb(ui_Indicator_Left, slider_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
 }
 
 void lv_avi_window_create(lv_obj_t *parent)
@@ -374,9 +569,9 @@ void lv_avi_player_draw(int32_t x, int32_t y, void *pInBuffer, int32_t xSize, in
 
 void lv_video_gui_init(void)
 {
-    lv_obj_t *win_obj;
     win_obj = lv_media_page_create(lv_scr_act());
     lv_avi_window_create(win_obj);
     file_explorer_create(win_obj);
     file_ImgButton_create(win_obj);
+    sound_slider_create(win_obj);
 }

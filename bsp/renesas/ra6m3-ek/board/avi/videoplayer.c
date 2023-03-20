@@ -38,7 +38,7 @@ static uint32_t _REV(uint32_t value)
            (value & 0x00FF0000U) >> 8 | (value & 0xFF000000U) >> 24;
 }
 
-static uint32_t read_frame(int fd, uint8_t *buffer, uint32_t length, uint32_t *fourcc)
+uint32_t read_frame(int fd, uint8_t *buffer, uint32_t length, uint32_t *fourcc)
 {
     AVI_CHUNK_HEAD head;
     read(fd, &head, sizeof(AVI_CHUNK_HEAD));
@@ -61,7 +61,7 @@ static uint32_t read_frame(int fd, uint8_t *buffer, uint32_t length, uint32_t *f
     return head.size;
 }
 
-static void audio_init(void)
+void audio_init(void)
 {
     pwm_audio_config_t pac;
     pac.duty_resolution    = 10;
@@ -88,7 +88,7 @@ int audio_volume_set(int argc, const char *argv[])
 }
 MSH_CMD_EXPORT(audio_volume_set, audio_volume_set);
 
-void video_play_thread()
+void video_play_thread(void *param)
 {
     int ret;
     size_t BytesRD;
@@ -98,8 +98,6 @@ void video_play_thread()
     uint32_t buffer_size = 30 * 1024;
     uint32_t alltime;
     uint32_t cur_time;
-    rt_err_t res = RT_EOK;
-    struct q_rx_msg msg;
 
     pbuffer = rt_malloc(buffer_size);
     if (pbuffer == NULL)
@@ -110,73 +108,67 @@ void video_play_thread()
 
     while (1)
     {
-        rt_memset(&msg, 0, sizeof(msg));
-        res = rt_mq_recv(video_msg_mq, &msg, sizeof(msg), RT_WAITING_FOREVER);
-        if (RT_EOK == res) 
-        {
-            rt_kprintf("rec music name：%s\n", msg.data);
-            int fd = -1;
-            fd = open(msg.data, O_WRONLY | O_CREAT);
-            
-            BytesRD = read(fd, pbuffer, 20480);    
-            ret = AVI_Parser(pbuffer, BytesRD);
-            if (0 > ret)
-            {
-                rt_kprintf("parse failed (%d)\n", ret);
-                return;
-            }
+        int fd = -1;
+        fd = open(param, O_WRONLY | O_CREAT);
         
-#ifdef USEING_AUDIO
-            /* Audio Init */
-            audio_init();
-            pwm_audio_set_param(AVI_file.auds_sample_rate, AVI_file.auds_bits, AVI_file.auds_channels);
-#endif
-            uint16_t video_width = AVI_file.vids_width;
-            uint16_t video_height = AVI_file.vids_height;
-            rt_kprintf("video width:%d, video height:%d\n", video_width, video_height);
-
-            // vido info
-            alltime = (AVI_file.avi_hd.avih.us_per_frame / 1000) * AVI_file.avi_hd.avih.total_frames;
-            alltime /= 1000; // s
-            rt_kprintf("video total time:%02d:%02d:%02d\n", alltime / 3600, (alltime % 3600) / 60, alltime % 60);
-
-            lseek(fd, AVI_file.movi_start, SEEK_SET);
-            Strsize = read_frame(fd, pbuffer, buffer_size, &Strtype);
-            BytesRD = Strsize + 8;
-            
-            while (1)
-            {
-                cur_time = ((float)BytesRD / AVI_file.movi_size) * alltime;
-
-                if (BytesRD >= AVI_file.movi_size)
-                {
-                    rt_kprintf("video played over\n");
-                    break;
-                }
-                if (Strtype == T_vids)
-                {
-                    extern int JPEG_X_Draw(void *p, int x0, int y0);
-                    JPEG_X_Draw(pbuffer, 0, 0);
-                }
-                /* audio output */
-                else if (Strtype == T_auds)
-                {
-                    size_t cnt;
-                    pwm_audio_write((uint8_t *)pbuffer, Strsize, &cnt, 500);
-                }
-                else
-                {
-                    rt_kprintf("unknow frame\n");
-                    break;
-                }
-                
-                /* read frame */
-                Strsize = read_frame(fd, pbuffer, buffer_size, &Strtype);
-                BytesRD += Strsize + 8;
-            }
-            rt_kprintf("close video file\n");
-            pwm_audio_deinit();
-            close(fd);
+        BytesRD = read(fd, pbuffer, 20480);    
+        ret = AVI_Parser(pbuffer, BytesRD);
+        if (0 > ret)
+        {
+            rt_kprintf("parse failed (%d)\n", ret);
+            return;
         }
+    
+#ifdef USEING_AUDIO
+        /* Audio Init */
+        audio_init();
+        pwm_audio_set_param(AVI_file.auds_sample_rate, AVI_file.auds_bits, AVI_file.auds_channels);
+#endif
+        uint16_t video_width = AVI_file.vids_width;
+        uint16_t video_height = AVI_file.vids_height;
+        rt_kprintf("video width:%d, video height:%d\n", video_width, video_height);
+
+        // vido info
+        alltime = (AVI_file.avi_hd.avih.us_per_frame / 1000) * AVI_file.avi_hd.avih.total_frames;
+        alltime /= 1000; // s
+        rt_kprintf("video total time:%02d:%02d:%02d\n", alltime / 3600, (alltime % 3600) / 60, alltime % 60);
+
+        lseek(fd, AVI_file.movi_start, SEEK_SET);
+        Strsize = read_frame(fd, pbuffer, buffer_size, &Strtype);
+        BytesRD = Strsize + 8;
+        
+        while (1)
+        {
+            cur_time = ((float)BytesRD / AVI_file.movi_size) * alltime;
+
+            if (BytesRD >= AVI_file.movi_size)
+            {
+                rt_kprintf("video played over\n");
+                break;
+            }
+            if (Strtype == T_vids)
+            {
+                extern int JPEG_X_Draw(void *p, int x0, int y0);
+                JPEG_X_Draw(pbuffer, 0, 0);
+            }
+            /* audio output */
+            else if (Strtype == T_auds)
+            {
+                size_t cnt;
+                pwm_audio_write((uint8_t *)pbuffer, Strsize, &cnt, 500);
+            }
+            else
+            {
+                rt_kprintf("unknow frame\n");
+                break;
+            }
+            
+            /* read frame */
+            Strsize = read_frame(fd, pbuffer, buffer_size, &Strtype);
+            BytesRD += Strsize + 8;
+        }
+        rt_kprintf("close video file\n");
+        pwm_audio_deinit();
+        close(fd);
     }
 }

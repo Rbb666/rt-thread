@@ -258,7 +258,7 @@ rt_err_t pwm_audio_init(const pwm_audio_config_t *cfg)
     //
 
     /**< set a initial parameter */
-    res = pwm_audio_set_param(16000, 8, 2);
+//    res = pwm_audio_set_param(16000, 8, 2);
 
     handle->status = PWM_AUDIO_STATUS_IDLE;
 
@@ -624,6 +624,22 @@ void cb_timer2(timer_callback_args_t *p_args)
     rt_interrupt_leave();
 }
 
+rt_err_t pwm_audio_start(void)
+{
+    pwm_audio_handle_t handle = g_pwm_audio_handle;
+    RT_ASSERT(NULL != handle);
+    RT_ASSERT(handle->status == PWM_AUDIO_STATUS_IDLE);
+
+    handle->status = PWM_AUDIO_STATUS_BUSY;
+
+    /**< timer enable interrupt */
+    int level = rt_hw_interrupt_disable();
+    R_GPT_Start(handle->gen_timer_ctrl);
+    rt_hw_interrupt_enable(level);
+
+    return RT_EOK;
+}
+
 rt_err_t pwm_audio_stop(void)
 {
     pwm_audio_handle_t handle = g_pwm_audio_handle;
@@ -632,7 +648,8 @@ rt_err_t pwm_audio_stop(void)
     /**< timer disable interrupt */
     int level = rt_hw_interrupt_disable();
     //
-    R_GPT_Stop(handle->pwm_timer_ctrl);
+//    R_GPT_Stop(handle->pwm_timer_ctrl);
+    R_GPT_Stop(handle->gen_timer_ctrl);
     //
     rt_hw_interrupt_enable(level);
 

@@ -3,7 +3,7 @@
 #include <rtthread.h>
 #include "avifile.h"
 
-#define DEBUGINFO
+//#define DEBUGINFO
 
 AVI_TypeDef AVI_file;
 

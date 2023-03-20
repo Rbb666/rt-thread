@@ -1,14 +1,9 @@
-
 from building import *
-import rtconfig
+import os
 
+group = []
 cwd = GetCurrentDir()
-
-src = []
-
-if GetDepend(['BSP_USING_JPEG']):
-    src += Glob('avifile.c')
-    src += Glob('videoplayer.c')
+src = Glob('*.c')
 
 CPPPATH = [cwd]
 LOCAL_CFLAGS = ''
@@ -18,6 +13,11 @@ if rtconfig.PLATFORM in ['gcc', 'armclang']:
 elif rtconfig.PLATFORM in ['armcc']:
     LOCAL_CFLAGS += ' --c99'
 
-group = DefineGroup('avi', src, depend = [], CPPPATH = CPPPATH, LOCAL_CFLAGS = LOCAL_CFLAGS)
+list = os.listdir(cwd)
+for d in list:
+    path = os.path.join(cwd, d)
+    if os.path.isfile(os.path.join(path, 'SConscript')):
+        group = group + SConscript(os.path.join(d, 'SConscript'))
 
+group = group + DefineGroup('avi', src, depend = [], CPPPATH = CPPPATH, LOCAL_CFLAGS = LOCAL_CFLAGS)
 Return('group')
