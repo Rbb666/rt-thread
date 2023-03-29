@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/statfs.h>
+#include "lv_demo_video.h"
 
 #define DBG_TAG    "player"
 #define DBG_LVL    DBG_INFO
@@ -15,6 +16,9 @@
 
 #define T_vids _REV(0x30306463)
 #define T_auds _REV(0x30317762)
+
+#define __Map(x, in_min, in_max, out_min, out_max) \
+    (((x) - (in_min)) * ((out_max) - (out_min)) / ((in_max) - (in_min)) + (out_min))
 
 #define v_pbuffer_size 35 * 1024
 
@@ -410,6 +414,7 @@ MSH_CMD_EXPORT(video_stop_cmd, stop play video)
 static void player_entry(void *parameter)
 {
     int fd = -1;
+    int32_t process;
     player_t player = (player_t)parameter;
 
     while (1)
@@ -447,9 +452,13 @@ static void player_entry(void *parameter)
             avi_file.BytesRD += avi_file.Strsize + 8;
             player->song_time_pass = ((double)avi_file.BytesRD / AVI_file.movi_size) * player->song_time_all;
 
+            process = __Map((int32_t)player->song_time_pass, 0, player->song_time_all, 0, 100);
+            set_audio_wave_value(process);
+
             /* if video was play over,play next video */
             if (avi_file.BytesRD >= AVI_file.movi_size)
             {
+                set_audio_wave_value(0);
                 player_next(player);
                 player_show(player);
             }
@@ -466,25 +475,24 @@ static void player_entry(void *parameter)
         }
         if (player->status == PLAYER_DELETE)
         {
-            player->status = PLAYER_IDLE;
-
-            LOG_I("Free %s resources", player->video_list[player->song_current - 1]);
-            pwm_audio_deinit();
             close(fd);
+            pwm_audio_deinit();
+            player->status = PLAYER_IDLE;
+            LOG_I("Free %s resources", player->video_list[player->song_current - 1]);
         }
         if (player->status == PLAYER_LAST)
         {
-            LOG_I("Free %s resources", player->video_list[player->song_current - 1]);
-            pwm_audio_deinit();
             close(fd);
+            pwm_audio_deinit();
             player->status = PLAYER_READY;
+            LOG_I("Free %s resources", player->video_list[player->song_current - 1]);
         }
         if (player->status == PLAYER_NEXT)
         {
-            LOG_I("Free %s resources", player->video_list[player->song_current - 1]);
-            pwm_audio_deinit();
             close(fd);
+            pwm_audio_deinit();
             player->status = PLAYER_READY;
+            LOG_I("Free %s resources", player->video_list[player->song_current - 1]);
         }
         if (player->status == PLAYER_IDLE)
         {

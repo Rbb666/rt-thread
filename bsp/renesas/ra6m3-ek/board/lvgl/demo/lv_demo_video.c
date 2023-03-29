@@ -11,42 +11,27 @@
 #include <lcd_port.h>
 #include "lvgl.h"
 #include "drv_jpeg.h"
-#include "player.h"
+#include "lv_demo_video.h"
 
 #include "ui_helpers.h"
 #include "ui_anim.h"
-
-#include "lv_file_explorer.h"
+#include "player.h"
 
 #define JPEG_WIDTH  400
 #define JPEG_HEIGHT 240
 
 #define MY_CLASS &lv_media_class
 
-typedef enum {
-    LV_MEDIA_STATE_NORMAL,
-    LV_MEDIA_STATE_PAUSE,
-    LV_MEDIA_STATE_PLAY,
-    LV_MEDIA_STATE_NEXT,
-    LV_MEDIA_STATE_PREV,
-} lv_mdeia_state_t;
+lv_obj_t *win_obj;
+lv_obj_t *avi_obj;
+lv_obj_t *file_explorer_panel;
+lv_obj_t *file_ImgButton;
 
-typedef enum {
-    LV_FILE_EXPLORER_OPEN,
-    LV_FILE_EXPLORER_CLOSE,
-} lv_file_btn_starte_t;
-
-typedef enum {
-    LV_MUSIC_PLAY,
-    LV_MUSIC_STOP,
-} play_btn_starte_t;
-
-typedef struct
-{
-    lv_obj_t obj;
-    char *cur_fn;
-    lv_mdeia_state_t state;
-} lv_media_obj_t;
+lv_obj_t * ui_ImgButton1;
+lv_obj_t * ui_ImgButton2;
+lv_obj_t * ui_ImgButton3;
+lv_obj_t * ui_Indicator_Left;
+lv_obj_t * ui_Audio_Wave;
 
 const lv_obj_class_t lv_media_class = 
 {
@@ -56,31 +41,12 @@ const lv_obj_class_t lv_media_class =
     .base_class = &lv_obj_class
 };
 
-LV_IMG_DECLARE(ui_img_prev_png); 
-LV_IMG_DECLARE(ui_img_next_png); 
-LV_IMG_DECLARE(ui_img_pause_png);
-LV_IMG_DECLARE(ui_img_run_png);
-
-static lv_obj_t *win_obj;
-
-static lv_obj_t *avi_obj;
-static lv_obj_t *file_explorer_panel;
-static lv_obj_t *file_ImgButton;
 static rt_bool_t btn_state_change = RT_FALSE;
 static rt_bool_t play_state_change = RT_FALSE;
-
-//
-static lv_obj_t * ui_ImgButton3;
-static lv_obj_t * ui_ImgButton1;
-static lv_obj_t * ui_ImgButton2;
-
-static lv_obj_t * ui_Indicator_Left;
-
+static uint16_t lv_show_buffer[JPEG_WIDTH * JPEG_HEIGHT] BSP_ALIGN_VARIABLE(16);
 extern struct player v_player;
 
 static void func_button_create(lv_obj_t *parent);
-
-static uint16_t lv_show_buffer[JPEG_WIDTH * JPEG_HEIGHT] BSP_ALIGN_VARIABLE(16);
 
 void lv_media_set_state(lv_obj_t *obj, lv_mdeia_state_t state)
 {
@@ -221,7 +187,7 @@ static void slider_event_cb(lv_event_t *event)
     player_control(&v_player, PLAYER_CMD_SET_VOL, &volume);
 }
 
-lv_obj_t *lv_media_page_create(lv_obj_t *parent)
+static lv_obj_t *lv_media_page_create(lv_obj_t *parent)
 {
     LV_LOG_INFO("begin");
     lv_obj_t * obj = lv_obj_class_create_obj(MY_CLASS, parent);
@@ -229,7 +195,7 @@ lv_obj_t *lv_media_page_create(lv_obj_t *parent)
     return obj;
 }
 
-void file_explorer_create(lv_obj_t *parent)
+static void file_explorer_create(lv_obj_t *parent)
 {
     lv_obj_set_style_border_width(lv_scr_act(), 0, LV_STATE_DEFAULT);
     lv_obj_set_style_bg_color(lv_scr_act(), lv_color_black(), LV_STATE_DEFAULT);
@@ -246,7 +212,7 @@ void file_explorer_create(lv_obj_t *parent)
     lv_obj_add_event_cb(file_explorer_panel, file_explorer_event_cb, LV_EVENT_VALUE_CHANGED, parent);
 }
 
-void file_ImgButton_create(lv_obj_t *parent)
+static void file_ImgButton_create(lv_obj_t *parent)
 {    
     LV_IMG_DECLARE(file_icon);
     
@@ -258,7 +224,7 @@ void file_ImgButton_create(lv_obj_t *parent)
     lv_obj_add_event_cb(file_ImgButton, Button_event, LV_EVENT_ALL, NULL);
 }
 
-void func_button_create(lv_obj_t *parent)
+static void func_button_create(lv_obj_t *parent)
 {
     ui_ImgButton3 = lv_imgbtn_create(parent);
     lv_imgbtn_set_src(ui_ImgButton3, LV_IMGBTN_STATE_RELEASED, NULL, &ui_img_prev_png, NULL);
@@ -293,10 +259,8 @@ void func_button_create(lv_obj_t *parent)
     lv_obj_add_event_cb(ui_ImgButton3, Button_event, LV_EVENT_ALL, NULL);
 }
 
-void sound_slider_create(lv_obj_t *parent)
+static void sound_slider_create(lv_obj_t *parent)
 {
-    LV_IMG_DECLARE(ui_img_indicator_ver_png);
-
     ui_Indicator_Left = lv_slider_create(parent);
     lv_slider_set_range(ui_Indicator_Left, -16, 16);
     lv_slider_set_mode(ui_Indicator_Left, LV_SLIDER_MODE_SYMMETRICAL);
@@ -327,14 +291,44 @@ void sound_slider_create(lv_obj_t *parent)
     lv_obj_add_event_cb(ui_Indicator_Left, slider_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
 }
 
-void lv_avi_window_create(lv_obj_t *parent)
+static void lv_audio_wave_create(lv_obj_t *parent)
+{
+    ui_Audio_Wave = lv_slider_create(parent);
+    lv_slider_set_value(ui_Audio_Wave, 0, LV_ANIM_OFF);
+    if(lv_slider_get_mode(ui_Audio_Wave) == LV_SLIDER_MODE_RANGE) lv_slider_set_left_value(ui_Audio_Wave, 0, LV_ANIM_OFF);
+    lv_obj_set_width(ui_Audio_Wave, 310);
+    lv_obj_set_height(ui_Audio_Wave, 10);
+    lv_obj_set_align(ui_Audio_Wave, LV_ALIGN_BOTTOM_MID);
+    lv_obj_set_style_bg_color(ui_Audio_Wave, lv_color_hex(0xFFFFFF), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_Audio_Wave, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_main_stop(ui_Audio_Wave, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_grad_stop(ui_Audio_Wave, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_img_src(ui_Audio_Wave, &ui_img_audio_wave_1_png, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_img_opa(ui_Audio_Wave, 50, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    lv_obj_set_style_bg_color(ui_Audio_Wave, lv_color_hex(0xFFFFFF), LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_Audio_Wave, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_main_stop(ui_Audio_Wave, 0, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_grad_stop(ui_Audio_Wave, 255, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_img_src(ui_Audio_Wave, &ui_img_audio_wave_1_png, LV_PART_INDICATOR | LV_STATE_DEFAULT);
+
+    lv_obj_set_style_bg_color(ui_Audio_Wave, lv_color_hex(0xFFFFFF), LV_PART_KNOB | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_Audio_Wave, 0, LV_PART_KNOB | LV_STATE_DEFAULT);
+}
+
+void set_audio_wave_value(int32_t value)
+{
+    lv_slider_set_value(ui_Audio_Wave, value, LV_ANIM_OFF);
+}
+
+static void lv_avi_window_create(lv_obj_t *parent)
 {
     avi_obj = lv_img_create(parent);
     lv_obj_set_size(avi_obj, JPEG_WIDTH, JPEG_HEIGHT);
     lv_obj_align(avi_obj, LV_ALIGN_CENTER, 0, 0);
 }
 
-void lv_avi_player_draw(int32_t x, int32_t y, void *pInBuffer, int32_t xSize, int32_t ySize)
+void lv_avi_player_draw(int32_t x, int32_t y, const void *pInBuffer, int32_t xSize, int32_t ySize)
 {
     static lv_img_dsc_t img_dsc =
     {
@@ -367,4 +361,5 @@ void lv_video_gui_init(void)
     file_explorer_create(win_obj);
     file_ImgButton_create(win_obj);
     sound_slider_create(win_obj);
+    lv_audio_wave_create(win_obj);
 }
