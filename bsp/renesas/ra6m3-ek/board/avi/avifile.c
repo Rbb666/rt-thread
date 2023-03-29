@@ -21,11 +21,13 @@ static int search_fourcc(uint32_t fourcc, const uint8_t *buffer, uint32_t length
     uint32_t i, j;
     uint32_t *pdata;
     j = length - 4;
+    rt_kprintf("movi index:%d\n\n", j);
     for (i = 0; i < j; i++)
     {
         pdata = (uint32_t *)(buffer + i);
         if (fourcc == *pdata)
         {
+            rt_kprintf("==>find movi:%#x,%d\n", pdata, i);
             return i;
         }
     }
@@ -204,6 +206,8 @@ int AVI_Parser(const uint8_t *buffer, uint32_t length)
         }
         pdata += strl_size;
     }
+
+    rt_kprintf("MAKE_FOURCC:%d\n\n", MAKE_FOURCC('m', 'o', 'v', 'i'));
     int movi_offset = search_fourcc(MAKE_FOURCC('m', 'o', 'v', 'i'), pdata, length - (pdata - buffer));
     if (0 > movi_offset)
     {

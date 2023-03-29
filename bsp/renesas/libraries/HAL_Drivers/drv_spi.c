@@ -199,7 +199,7 @@ static rt_err_t ra_hw_spi_configure(struct rt_spi_device *device,
     return RT_EOK;
 }
 
-static rt_uint32_t ra_spixfer(struct rt_spi_device *device, struct rt_spi_message *message)
+static rt_ssize_t ra_spixfer(struct rt_spi_device *device, struct rt_spi_message *message)
 {
     RT_ASSERT(device != RT_NULL);
     RT_ASSERT(device->bus != RT_NULL);
