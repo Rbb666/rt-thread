@@ -64,7 +64,7 @@
 
 /* end of rt_strnlen options */
 /* end of klibc options */
-#define RT_NAME_MAX 12
+#define RT_NAME_MAX 16
 #define RT_CPUS_NR 1
 #define RT_ALIGN_SIZE 8
 #define RT_THREAD_PRIORITY_32
@@ -76,6 +76,9 @@
 #define RT_USING_IDLE_HOOK
 #define RT_IDLE_HOOK_LIST_SIZE 4
 #define IDLE_THREAD_STACK_SIZE 1024
+#define RT_USING_TIMER_SOFT
+#define RT_TIMER_THREAD_PRIO 4
+#define RT_TIMER_THREAD_STACK_SIZE 512
 
 /* kservice options */
 
@@ -99,11 +102,12 @@
 #define RT_USING_MEMPOOL
 #define RT_USING_SMALL_MEM
 #define RT_USING_SMALL_MEM_AS_HEAP
+#define RT_USING_MEMTRACE
 #define RT_USING_HEAP
 /* end of Memory Management */
 #define RT_USING_DEVICE
 #define RT_USING_CONSOLE
-#define RT_CONSOLEBUF_SIZE 128
+#define RT_CONSOLEBUF_SIZE 512
 #define RT_CONSOLE_DEVICE_NAME "uart1"
 #define RT_USING_CONSOLE_OUTPUT_CTL
 #define RT_VER_NUM 0x50300
@@ -191,6 +195,10 @@
 
 /* Utilities */
 
+#define RT_USING_UTEST
+#define UTEST_THR_STACK_SIZE 4096
+#define UTEST_THR_PRIORITY 20
+#define RT_UTEST_MAX_OPTIONS 64
 /* end of Utilities */
 
 /* Using USB legacy version */
@@ -200,6 +208,55 @@
 
 /* RT-Thread Utestcases */
 
+#define RT_USING_UTESTCASES
+
+/* Kernel Core */
+
+#define RT_UTEST_THREAD
+/* end of Kernel Core */
+
+/* Kernel Components */
+
+/* Drivers */
+
+
+/* IPC Test */
+
+/* end of IPC Test */
+
+/* Serial Test */
+
+/* end of Serial Test */
+
+/* SMP-Call Test */
+
+/* end of SMP-Call Test */
+/* end of Drivers */
+
+/* Tmpfs Testcase */
+
+/* end of Tmpfs Testcase */
+
+/* CPP11 */
+
+/* end of CPP11 */
+
+/* LWP Testcase */
+
+/* end of LWP Testcase */
+
+/* Memory Management Subsytem Testcase */
+
+/* end of Memory Management Subsytem Testcase */
+
+/* Network */
+
+/* end of Network */
+
+/* Utest Framework */
+
+/* end of Utest Framework */
+/* end of Kernel Components */
 /* end of RT-Thread Utestcases */
 
 /* RT-Thread online packages */
@@ -263,6 +320,12 @@
 
 /* tools packages */
 
+#define PKG_USING_CMBACKTRACE
+#define PKG_CMBACKTRACE_PLATFORM_M4
+#define PKG_CMBACKTRACE_DUMP_STACK
+#define PKG_CMBACKTRACE_PRINT_CHINESE_UTF8
+#define PKG_USING_CMBACKTRACE_LATEST_VERSION
+#define PKG_CMBACKTRACE_VER_NUM 0x99999
 /* end of tools packages */
 
 /* system packages */

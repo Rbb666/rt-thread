@@ -1,0 +1,11 @@
+from building import *
+import os
+
+cwd     = GetCurrentDir()
+src     = Glob('*.c')
+CPPPATH = [cwd]
+
+# 异常注入测试组: 由 applications/SConscript 的"扫子目录"机制自动纳入构建。
+group = DefineGroup('test_fault', src, depend = [''], CPPPATH = CPPPATH)
+
+Return('group')
